@@ -34,6 +34,12 @@ ESP32-S3 + LovyanGFX SPI TFT 示例
 - 尺寸类：TFT_WIDTH/TFT_HEIGHT/TFT_OFFSET_X/TFT_OFFSET_Y/TFT_FREQ
 - 引脚类：TFT_MOSI/TFT_MISO/TFT_SCLK/TFT_CS/TFT_DC/TFT_RST/TFT_BL/TFT_BL_ACTIVE
 
+触摸与亮度 UI
+- 已内置基于 LovyanGFX 的触摸读取逻辑（XPT2046 可选）。
+- 屏幕顶部会渲染 “- / +” 两个按钮，点击调整背光亮度（0..255）。
+- 启用方法：在 `platformio.ini` 的 `[common]` 设置 `touch_xpt2046 = 1`，并设置 `touch_cs`（可选 `touch_irq`）。
+- 旋转与校准：若坐标方向不正确，可调整 `touch_rotation`（0..3）；如范围不匹配，可在 `src/lgfx_setup.hpp` 中细调 `x_min/x_max/y_min/y_max`。
+
 面板型号
 当前在 `src/lgfx_setup.hpp` 中使用的是 `lgfx::Panel_ILI9341`。如你的屏是 ST7789 或其他型号，请将面板类替换为对应的 LovyanGFX 面板类，例如：
 

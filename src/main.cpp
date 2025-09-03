@@ -3,6 +3,49 @@
 
 LGFX lcd;
 
+// UI constants
+static const int BTN_H = 40;
+static const int BTN_W = 80;
+static const int BTN_MARGIN = 8;
+static const int TOP_BAR_H = BTN_H + BTN_MARGIN * 2;
+static int g_brightness = 255; // 0..255
+
+static void draw_ui()
+{
+  // Top bar background
+  lcd.fillRect(0, 0, lcd.width(), TOP_BAR_H, TFT_DARKGREY);
+  // Minus button on the left
+  lcd.fillRoundRect(BTN_MARGIN, BTN_MARGIN, BTN_W, BTN_H, 6, TFT_BLACK);
+  lcd.drawString("-", BTN_MARGIN + BTN_W / 2 - 4, BTN_MARGIN + 10);
+  // Plus button on the right
+  lcd.fillRoundRect(lcd.width() - BTN_MARGIN - BTN_W, BTN_MARGIN, BTN_W, BTN_H, 6, TFT_BLACK);
+  lcd.drawString("+", lcd.width() - BTN_MARGIN - BTN_W / 2 - 4, BTN_MARGIN + 10);
+  // Brightness text in the middle
+  lcd.setTextColor(TFT_WHITE, TFT_DARKGREY);
+  lcd.setTextSize(2);
+  lcd.setCursor(lcd.width() / 2 - 60, BTN_MARGIN + 12);
+  lcd.printf("Brightness: %3d", g_brightness);
+}
+
+static void apply_brightness()
+{
+  if (g_brightness < 0)
+    g_brightness = 0;
+  if (g_brightness > 255)
+    g_brightness = 255;
+  lcd.setBrightness(g_brightness);
+  // update text only
+  lcd.setTextColor(TFT_WHITE, TFT_DARKGREY);
+  lcd.fillRect(lcd.width() / 2 - 70, BTN_MARGIN + 8, 160, 24, TFT_DARKGREY);
+  lcd.setCursor(lcd.width() / 2 - 60, BTN_MARGIN + 12);
+  lcd.printf("Brightness: %3d", g_brightness);
+}
+
+static bool in_rect(int x, int y, int rx, int ry, int rw, int rh)
+{
+  return x >= rx && x < rx + rw && y >= ry && y < ry + rh;
+}
+
 void setup() {
   Serial.begin(115200);
   // 等待USB CDC串口被主机打开（最多3秒），UART时此判断始终为真
@@ -12,11 +55,19 @@ void setup() {
   }
   Serial.println("Starting TFT display test...");
   Serial.println("ESP32-S3-DevKitM-1 Board");
+  // Print touch config for debugging
+#if defined(TOUCH_XPT2046)
+  Serial.printf("Touch cfg: XPT2046=%d CS=%d IRQ=%d ROT=%d\n", (int)TOUCH_XPT2046, (int)TOUCH_CS, (int)TOUCH_IRQ, (int)TOUCH_ROTATION);
+#endif
 
   // Print pin configuration
   Serial.printf("Pin configuration:\n");
   Serial.printf("MOSI: %d, SCLK: %d, CS: %d, DC: %d, RST: %d, BL: %d\n",
                 TFT_MOSI, TFT_SCLK, TFT_CS, TFT_DC, TFT_RST, TFT_BL);
+#if defined(TOUCH_XPT2046)
+  Serial.printf("Touch pins: SCLK=%d, MOSI=%d, MISO=%d, CS=%d, IRQ=%d\n",
+                (int)TOUCH_SCLK, (int)TOUCH_MOSI, (int)TOUCH_MISO, (int)TOUCH_CS, (int)TOUCH_IRQ);
+#endif
 
   Serial.println("Initializing LCD...");
   if (lcd.init()) {
@@ -37,7 +88,7 @@ void setup() {
   lcd.fillScreen(TFT_BLACK);
 
   // If backlight is connected via PWM, ensure it is on
-  lcd.setBrightness(255);
+  lcd.setBrightness(g_brightness);
 
   lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   lcd.setTextSize(2);
@@ -54,21 +105,42 @@ void setup() {
   lcd.fillRect(3*w, 60, w, TFT_HEIGHT-60, TFT_GREEN);
   lcd.fillRect(4*w, 60, w, TFT_HEIGHT-60, TFT_CYAN);
   lcd.fillRect(5*w, 60, w, TFT_HEIGHT-60, TFT_BLUE);
+
+  // Draw UI layer on top
+  draw_ui();
 }
 
 void loop() {
-  // Spin a small rectangle to show it's alive
-  static int x = 10, y = 100, dx = 2, dy = 2;
-  lcd.fillRect(x, y, 20, 20, TFT_BLACK);
-  Serial.print("X: ");
-  Serial.print(x);
-  Serial.print(" Y: ");
-  Serial.println(y);
-  x += dx; y += dy;
-  if (x < 0 || x + 20 >= TFT_WIDTH)
-    dx = -dx;
-  if (y < 60 || y + 20 >= TFT_HEIGHT)
-    dy = -dy;
-  lcd.fillRect(x, y, 20, 20, TFT_WHITE);
-  delay(16);
+  // Touch to adjust brightness
+  uint16_t tx, ty;
+  if (lcd.getTouch(&tx, &ty))
+  {
+    // Visual marker to confirm touch is read
+    lcd.fillCircle(tx, ty, 3, TFT_YELLOW);
+    // Debounce: wait a short moment for stable point
+    delay(20);
+    // Check buttons
+    bool changed = false;
+    if (in_rect(tx, ty, BTN_MARGIN, BTN_MARGIN, BTN_W, BTN_H))
+    {
+      g_brightness -= 16;
+      changed = true;
+    }
+    else if (in_rect(tx, ty, lcd.width() - BTN_MARGIN - BTN_W, BTN_MARGIN, BTN_W, BTN_H))
+    {
+      g_brightness += 16;
+      changed = true;
+    }
+    if (changed)
+    {
+      apply_brightness();
+      Serial.printf("Touch (%u,%u) -> Brightness %d\n", tx, ty, g_brightness);
+      // Wait for release to avoid auto-repeat too fast
+      while (lcd.getTouch(&tx, &ty))
+      {
+        delay(10);
+      }
+    }
+  }
+  delay(10);
 }

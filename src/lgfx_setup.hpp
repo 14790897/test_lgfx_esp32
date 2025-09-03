@@ -48,11 +48,40 @@
 #define TFT_BL_ACTIVE 1
 #endif
 
+// ---- Optional touch (XPT2046 over SPI) ----
+#ifndef TOUCH_XPT2046
+#define TOUCH_XPT2046 0
+#endif
+#ifndef TOUCH_CS
+#define TOUCH_CS -1
+#endif
+#ifndef TOUCH_IRQ
+#define TOUCH_IRQ -1
+#endif
+#ifndef TOUCH_SCLK
+#define TOUCH_SCLK TFT_SCLK
+#endif
+#ifndef TOUCH_MOSI
+#define TOUCH_MOSI TFT_MOSI
+#endif
+#ifndef TOUCH_MISO
+#define TOUCH_MISO TFT_MISO
+#endif
+#ifndef TOUCH_FREQ
+#define TOUCH_FREQ 2500000
+#endif
+#ifndef TOUCH_ROTATION
+#define TOUCH_ROTATION 0
+#endif
+
 class LGFX : public lgfx::LGFX_Device
 {
   lgfx::Bus_SPI _bus;
   lgfx::Panel_ILI9341 _panel;
   lgfx::Light_PWM _light;
+#if TOUCH_XPT2046
+  lgfx::Touch_XPT2046 _touch;
+#endif
 
 public:
   LGFX()
@@ -76,7 +105,7 @@ public:
     // bus_cfg.spi_mode = 0;
     bus_cfg.freq_write = TFT_FREQ;
     bus_cfg.freq_read = 16000000;
-
+    // bus_cfg.spi_mode = 3;
     bus_cfg.pin_sclk = TFT_SCLK;
     bus_cfg.pin_mosi = TFT_MOSI;
     bus_cfg.pin_dc = TFT_DC;
@@ -132,6 +161,32 @@ public:
       _light.config(light_cfg);
       _panel.setLight(&_light);
     }
+
+#if TOUCH_XPT2046
+    // ---- Touch (XPT2046 over SPI, optional) ----
+    // Only configure if CS is valid. Pins default to TFT_* if not provided.
+    if (TOUCH_CS >= 0)
+    {
+      auto tcfg = _touch.config();
+      // Reuse the same SPI host chosen for the panel
+      tcfg.spi_host = bus_cfg.spi_host;
+      tcfg.pin_sclk = TOUCH_SCLK;
+      tcfg.pin_mosi = TOUCH_MOSI;
+      tcfg.pin_miso = TOUCH_MISO;
+      tcfg.pin_cs = TOUCH_CS;
+      tcfg.pin_int = TOUCH_IRQ; // optional, can be -1
+      tcfg.freq = TOUCH_FREQ;
+      tcfg.bus_shared = true;                // share bus with display
+      tcfg.offset_rotation = TOUCH_ROTATION; // adjust if mapping is rotated
+      // Typical XPT2046 raw bounds; tune by calibration if needed
+      tcfg.x_min = 300;
+      tcfg.x_max = 3800;
+      tcfg.y_min = 300;
+      tcfg.y_max = 3800;
+      _touch.config(tcfg);
+      _panel.setTouch(&_touch);
+    }
+#endif
 
     setPanel(&_panel);
   }
