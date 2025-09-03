@@ -1,4 +1,4 @@
-// LGFX ST7789 240x240 setup using macros from platformio.ini
+// LGFX SPI panel setup using generic pin macros from platformio.ini
 #pragma once
 
 #ifndef LGFX_USE_V1
@@ -7,51 +7,51 @@
 
 #include <LovyanGFX.hpp>
 
-#ifndef ST7789_WIDTH
-#define ST7789_WIDTH 240
+#ifndef TFT_WIDTH
+#define TFT_WIDTH 240
 #endif
-#ifndef ST7789_HEIGHT
-#define ST7789_HEIGHT 240
+#ifndef TFT_HEIGHT
+#define TFT_HEIGHT 240
 #endif
-#ifndef ST7789_OFFSET_X
-#define ST7789_OFFSET_X 0
+#ifndef TFT_OFFSET_X
+#define TFT_OFFSET_X 0
 #endif
-#ifndef ST7789_OFFSET_Y
-#define ST7789_OFFSET_Y 0
+#ifndef TFT_OFFSET_Y
+#define TFT_OFFSET_Y 0
 #endif
-#ifndef ST7789_FREQ
-#define ST7789_FREQ 40000000
+#ifndef TFT_FREQ
+#define TFT_FREQ 40000000
 #endif
 
-#ifndef ST7789_MOSI
-#define ST7789_MOSI -1
+#ifndef TFT_MOSI
+#define TFT_MOSI -1
 #endif
-#ifndef ST7789_MISO
-#define ST7789_MISO -1
+#ifndef TFT_MISO
+#define TFT_MISO -1
 #endif
-#ifndef ST7789_SCLK
-#define ST7789_SCLK -1
+#ifndef TFT_SCLK
+#define TFT_SCLK -1
 #endif
-#ifndef ST7789_CS
-#define ST7789_CS -1
+#ifndef TFT_CS
+#define TFT_CS -1
 #endif
-#ifndef ST7789_DC
-#define ST7789_DC -1
+#ifndef TFT_DC
+#define TFT_DC -1
 #endif
-#ifndef ST7789_RST
-#define ST7789_RST -1
+#ifndef TFT_RST
+#define TFT_RST -1
 #endif
-#ifndef ST7789_BL
-#define ST7789_BL -1
+#ifndef TFT_BL
+#define TFT_BL -1
 #endif
-#ifndef ST7789_BL_ACTIVE
-#define ST7789_BL_ACTIVE 1
+#ifndef TFT_BL_ACTIVE
+#define TFT_BL_ACTIVE 1
 #endif
 
 class LGFX : public lgfx::LGFX_Device
 {
   lgfx::Bus_SPI _bus;
-  lgfx::Panel_ST7789 _panel;
+  lgfx::Panel_ILI9341 _panel;
   lgfx::Light_PWM _light;
 
 public:
@@ -74,17 +74,17 @@ public:
 #endif
 
     // bus_cfg.spi_mode = 0;
-    bus_cfg.freq_write = ST7789_FREQ;
+    bus_cfg.freq_write = TFT_FREQ;
     bus_cfg.freq_read = 16000000;
 
-    bus_cfg.pin_sclk = ST7789_SCLK;
-    bus_cfg.pin_mosi = ST7789_MOSI;
-    bus_cfg.pin_dc = ST7789_DC;
+    bus_cfg.pin_sclk = TFT_SCLK;
+    bus_cfg.pin_mosi = TFT_MOSI;
+    bus_cfg.pin_dc = TFT_DC;
 
     // If MISO is provided, use 4-wire; otherwise 3-wire
-    if (ST7789_MISO >= 0)
+    if (TFT_MISO >= 0)
     {
-      bus_cfg.pin_miso = ST7789_MISO;
+      bus_cfg.pin_miso = TFT_MISO;
       bus_cfg.spi_3wire = false;
     }
     else
@@ -101,16 +101,16 @@ public:
 
     // ---- Panel config ----
     auto panel_cfg = _panel.config();
-    panel_cfg.pin_cs = ST7789_CS;   // -1 if not used
-    panel_cfg.pin_rst = ST7789_RST; // -1 if not used
+    panel_cfg.pin_cs = TFT_CS;   // -1 if not used
+    panel_cfg.pin_rst = TFT_RST; // -1 if not used
     panel_cfg.pin_busy = -1;
 
-    panel_cfg.memory_width = ST7789_WIDTH;
-    panel_cfg.memory_height = ST7789_HEIGHT;
-    panel_cfg.panel_width = ST7789_WIDTH;
-    panel_cfg.panel_height = ST7789_HEIGHT;
-    panel_cfg.offset_x = ST7789_OFFSET_X;
-    panel_cfg.offset_y = ST7789_OFFSET_Y;
+    panel_cfg.memory_width = TFT_WIDTH;
+    panel_cfg.memory_height = TFT_HEIGHT;
+    panel_cfg.panel_width = TFT_WIDTH;
+    panel_cfg.panel_height = TFT_HEIGHT;
+    panel_cfg.offset_x = TFT_OFFSET_X;
+    panel_cfg.offset_y = TFT_OFFSET_Y;
     panel_cfg.offset_rotation = 0;
 
     panel_cfg.readable = false;
@@ -122,13 +122,13 @@ public:
     _panel.config(panel_cfg);
 
     // ---- Backlight (optional) ----
-    if (ST7789_BL >= 0)
+    if (TFT_BL >= 0)
     {
       auto light_cfg = _light.config();
-      light_cfg.pin_bl = ST7789_BL;
+      light_cfg.pin_bl = TFT_BL;
       light_cfg.freq = 44100;
       light_cfg.pwm_channel = 7;
-      light_cfg.invert = (ST7789_BL_ACTIVE == 0);
+      light_cfg.invert = (TFT_BL_ACTIVE == 0);
       _light.config(light_cfg);
       _panel.setLight(&_light);
     }

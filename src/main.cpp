@@ -5,13 +5,19 @@ LGFX lcd;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Starting ST7789 display test...");
-  
+  // 等待USB CDC串口被主机打开（最多3秒），UART时此判断始终为真
+  unsigned long t0 = millis();
+  while (!Serial && (millis() - t0) < 3000) {
+    delay(50);
+  }
+  Serial.println("Starting TFT display test...");
+  Serial.println("ESP32-S3-DevKitM-1 Board");
+
   // Print pin configuration
   Serial.printf("Pin configuration:\n");
-  Serial.printf("MOSI: %d, SCLK: %d, CS: %d, DC: %d, RST: %d, BL: %d\n", 
-                ST7789_MOSI, ST7789_SCLK, ST7789_CS, ST7789_DC, ST7789_RST, ST7789_BL);
-  
+  Serial.printf("MOSI: %d, SCLK: %d, CS: %d, DC: %d, RST: %d, BL: %d\n",
+                TFT_MOSI, TFT_SCLK, TFT_CS, TFT_DC, TFT_RST, TFT_BL);
+
   Serial.println("Initializing LCD...");
   if (lcd.init()) {
     Serial.println("LCD initialization successful!");
@@ -24,8 +30,8 @@ void setup() {
   lcd.setRotation(0); // 0-3
   
   // Force backlight on using GPIO
-  pinMode(ST7789_BL, OUTPUT);
-  digitalWrite(ST7789_BL, HIGH);
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, HIGH);
   Serial.println("Backlight forced ON");
   
   lcd.fillScreen(TFT_BLACK);
@@ -36,18 +42,18 @@ void setup() {
   lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   lcd.setTextSize(2);
   lcd.setCursor(10, 10);
-  lcd.println("LovyanGFX ST7789");
+  lcd.println("LovyanGFX TFT");
   lcd.setCursor(10, 35);
-  lcd.printf("%dx%d\n", ST7789_WIDTH, ST7789_HEIGHT);
+  lcd.printf("%dx%d\n", TFT_WIDTH, TFT_HEIGHT);
 
   // Simple color bars
-  const int w = ST7789_WIDTH / 6;
-  lcd.fillRect(0*w, 60, w, ST7789_HEIGHT-60, TFT_RED);
-  lcd.fillRect(1*w, 60, w, ST7789_HEIGHT-60, TFT_ORANGE);
-  lcd.fillRect(2*w, 60, w, ST7789_HEIGHT-60, TFT_YELLOW);
-  lcd.fillRect(3*w, 60, w, ST7789_HEIGHT-60, TFT_GREEN);
-  lcd.fillRect(4*w, 60, w, ST7789_HEIGHT-60, TFT_CYAN);
-  lcd.fillRect(5*w, 60, w, ST7789_HEIGHT-60, TFT_BLUE);
+  const int w = TFT_WIDTH / 6;
+  lcd.fillRect(0*w, 60, w, TFT_HEIGHT-60, TFT_RED);
+  lcd.fillRect(1*w, 60, w, TFT_HEIGHT-60, TFT_ORANGE);
+  lcd.fillRect(2*w, 60, w, TFT_HEIGHT-60, TFT_YELLOW);
+  lcd.fillRect(3*w, 60, w, TFT_HEIGHT-60, TFT_GREEN);
+  lcd.fillRect(4*w, 60, w, TFT_HEIGHT-60, TFT_CYAN);
+  lcd.fillRect(5*w, 60, w, TFT_HEIGHT-60, TFT_BLUE);
 }
 
 void loop() {
@@ -59,8 +65,10 @@ void loop() {
   Serial.print(" Y: ");
   Serial.println(y);
   x += dx; y += dy;
-  if (x < 0 || x + 20 >= ST7789_WIDTH) dx = -dx;
-  if (y < 60 || y + 20 >= ST7789_HEIGHT) dy = -dy;
+  if (x < 0 || x + 20 >= TFT_WIDTH)
+    dx = -dx;
+  if (y < 60 || y + 20 >= TFT_HEIGHT)
+    dy = -dy;
   lcd.fillRect(x, y, 20, 20, TFT_WHITE);
   delay(16);
 }
